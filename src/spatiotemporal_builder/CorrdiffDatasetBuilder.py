@@ -457,7 +457,7 @@ def main(args):
     builder = CorrDiffDatasetBuilder(
         era5,
         radar,
-        output_dir="dataset"
+        output_dir="datasets/corrdiff"
     )
 
     builder.build()
