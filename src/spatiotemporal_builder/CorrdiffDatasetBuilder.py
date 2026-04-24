@@ -1,6 +1,3 @@
-
-from asyncio.log import logger
-
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -72,13 +69,11 @@ class ERA5Dataset:
         if not self.path.exists():
             raise ValueError(f"Path não existe: {self.path}")
 
-        # Cria dataset (detecta year= / month= automaticamente)
         dataset = ds.dataset(self.path, format="parquet", partitioning="hive")
 
-        self.logger.info("Schema:", dataset.schema)
 
         # =========================================
-        # FILTRO TEMPORAL
+        # TEMPORAL FILTER
         # =========================================
         time_col = None
         for col in dataset.schema.names:
@@ -101,9 +96,7 @@ class ERA5Dataset:
 
         columns = ["latitude", "longitude", time_col] + self.variables
 
-        # =========================================
-        # LEITURA EFICIENTE
-        # =========================================
+        
         table = dataset.to_table(
             columns=columns,
             filter=filter_expr
@@ -322,7 +315,7 @@ class CorrDiffDatasetBuilder:
 
     def build(self):
         times = sorted(self.era5.df["time"].unique())
-        logger.info(f"Total timesteps: {len(times)}")
+        self.logger.info(f"Total timesteps: {len(times)}")
 
         sample_id = 0
 
@@ -332,7 +325,7 @@ class CorrDiffDatasetBuilder:
             era5_t = self.era5.df[self.era5.df["time"] == t]
 
             if len(era5_t) == 0:
-                logger.warning(f"No ERA5 data for {t}")
+                self.logger.warning(f"No ERA5 data for {t}")
                 continue
 
             X = self.era5.interpolate(
@@ -344,7 +337,7 @@ class CorrDiffDatasetBuilder:
             Y = self.radar.get_grid(t)
 
             if np.isnan(Y).all():
-                logger.warning(f"All NaN radar grid at {t}")
+                self.logger.warning(f"All NaN radar grid at {t}")
                 continue
 
             patches_created = 0
@@ -375,9 +368,9 @@ class CorrDiffDatasetBuilder:
                     sample_id += 1
                     patches_created += 1
 
-            logger.info(f"Patches created at {t}: {patches_created}")
+            self.logger.info(f"Patches created at {t}: {patches_created}")
 
-        logger.info(f"Dataset final size: {sample_id}")
+        self.logger.info(f"Dataset final size: {sample_id}")
 
 def parameter_parser():
     description = """
@@ -457,7 +450,7 @@ def main(args):
     builder = CorrDiffDatasetBuilder(
         era5,
         radar,
-        output_dir="dataset"
+        output_dir="datasets/corrdiff"
     )
 
     builder.build()
