@@ -9,7 +9,7 @@ from scipy.interpolate import RegularGridInterpolator
 import os
 import pyarrow.dataset as ds
 import pyarrow.compute as pc
-from src.config.paths import DATA_DIR, ERA5_DIR
+from src.config.paths import ERA5_DIR, RADAR_CACHE_DIR, RADAR_DIR
 import logging
 import sys
 import math
@@ -43,7 +43,7 @@ class ERA5Dataset:
 
     def __init__(self, path: str, variables, start_date, end_date, n_threads=8):
         self.logger = setup_logger()
-        self.path = Path("/home/sangonvi/Cefet/repositories/atmoseer/data/reanalysis/cds/era5/pressure")
+        self.path = Path(path)
         self.variables = variables
         self.start_date = pd.to_datetime(start_date)
         self.end_date = pd.to_datetime(end_date)
@@ -69,7 +69,7 @@ class ERA5Dataset:
     def load(self):
         self.logger.info(f"Loading ERA5 from {self.path}")
         
-        if not Path(self.path).exists():
+        if not self.path.exists():
             raise ValueError(f"Path não existe: {self.path}")
 
         # Cria dataset (detecta year= / month= automaticamente)
@@ -391,7 +391,7 @@ class CorrDiffDatasetBuilder:
 def main():
     
     era5 = ERA5Dataset(
-        path= ERA5_DIR,
+        path=ERA5_DIR,
         variables=["v", "u"],
         start_date="2024-01-22 00:00:00",
         end_date="2024-01-22 23:00:00",
@@ -400,8 +400,9 @@ def main():
     era5.load()
 
     radar = RadarDataset(
-    radar_path="/home/sangonvi/Cefet/repositories/atmoseer/data/radar_sumare",
-    cache_dir="/home/sangonvi/Cefet/repositories/atmoseer/data/radar_sumare/radar_cache",
+    #radar_path="/home/sangonvi/Cefet/repositories/atmoseer/data/radar_sumare",
+    radar_path=RADAR_DIR,
+    cache_dir=RADAR_CACHE_DIR,
     resolution_km=2,
     lat_range=(-23.5, -22.25),
     lon_range=(-44.0, -42.5),
