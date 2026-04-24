@@ -14,7 +14,7 @@ import logging
 import sys
 import math
 from PIL import Image
-
+import argparse
 
 # =========================================
 # LOGGER UTILS DOMAIN
@@ -80,7 +80,6 @@ class ERA5Dataset:
         # =========================================
         # FILTRO TEMPORAL
         # =========================================
-        # Descobre coluna de tempo
         time_col = None
         for col in dataset.schema.names:
             if col in ["time", "valid_time"]:
@@ -92,17 +91,14 @@ class ERA5Dataset:
 
         self.logger.info(f"Using time column: {time_col}")
 
-        # Converte datas para timestamp
         start = pd.Timestamp(self.start_date)
         end = pd.Timestamp(self.end_date)
 
-        # Filtro direto no dataset (super eficiente)
         filter_expr = (
             (pc.field(time_col) >= pc.scalar(start)) &
             (pc.field(time_col) <= pc.scalar(end))
         )
 
-        # Seleciona colunas necessárias
         columns = ["latitude", "longitude", time_col] + self.variables
 
         # =========================================
@@ -120,7 +116,6 @@ class ERA5Dataset:
         self.logger.info(f"Rows loaded: {table.num_rows}")
         df = table.to_pandas()
 
-        # Padroniza nome da coluna
         if time_col != "time":
             df["time"] = df[time_col]
 
@@ -384,31 +379,75 @@ class CorrDiffDatasetBuilder:
 
         logger.info(f"Dataset final size: {sample_id}")
 
+def parameter_parser():
+    description = """
+    Build dataset to use in corrdiff model, using ERA5 reanalysis and Sumaré Radar data.
+
+    Example:
+    
+    One-day dataset with u,v variables, 2km reflectivity radar resolution and default lat/lon range:
+        python3 -m src.spatiotemporal_builder.CorrdiffDatasetBuilder -b 2023-01-01 -e 2023-01-31 -e5vars u,v --lat_range -23.5 -22.25 --lon_range -44.0 -42.5 -radar_res 2
+   """
+
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+
+
+    parser.add_argument("-b", "--begin", required=True, help="Begin date (YYYY-MM-DD)")
+    parser.add_argument("-e", "--end", required=True, help="End date (YYYY-MM-DD)")
+    parser.add_argument(
+        "-e5vars",
+        "--era5_variables",
+        type=str,
+        default="u,v",
+        help='Comma-separated list of variables (e.g. "v,u")',
+    )
+    
+    parser.add_argument(
+        "--lat_range",
+        nargs=2,
+        type=float,
+        default=[-23.5, -22.25],
+        help="Latitude range (default: -23.5, -22.25)",
+    )
+    
+    parser.add_argument(
+        "--lon_range",
+        nargs=2,
+        type=float,
+        default=[-44.0, -42.5],
+        help="Longitude range (default: -44.0, -42.5)",
+    )
+    parser.add_argument(
+        "--radar_res",
+        type=int,
+        default=2,
+        help="Radar resolution in km (default: 2)"
+    )
+    return parser.parse_args()
 
 # =========================================
 # BEGIN
 # =========================================
-def main():
+def main(args):
     
     era5 = ERA5Dataset(
         path=ERA5_DIR,
-        variables=["v", "u"],
-        start_date="2024-01-22 00:00:00",
-        end_date="2024-01-22 23:00:00",
+        variables=args.era5_variables.split(","),
+        start_date=args.begin + " 00:00:00",
+        end_date=args.end + " 23:00:00",
      )
 
     era5.load()
 
     radar = RadarDataset(
-    #radar_path="/home/sangonvi/Cefet/repositories/atmoseer/data/radar_sumare",
-    radar_path=RADAR_DIR,
-    cache_dir=RADAR_CACHE_DIR,
-    resolution_km=2,
-    lat_range=(-23.5, -22.25),
-    lon_range=(-44.0, -42.5),
-    start_date="2024-01-22 00:00:00",
-    end_date="2024-01-22 23:58:00"
-    )
+        radar_path=RADAR_DIR,
+        cache_dir=RADAR_CACHE_DIR,
+        resolution_km=args.radar_res,
+        lat_range=args.lat_range,
+        lon_range=args.lon_range,
+        start_date=args.begin + " 00:00:00",
+        end_date=args.end + " 23:58:00"
+        )
     
     radar._build_grid()
     radar._build_time_index()
@@ -425,4 +464,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parameter_parser()
+    main(args)
