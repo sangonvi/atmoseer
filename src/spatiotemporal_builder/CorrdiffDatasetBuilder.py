@@ -3,13 +3,11 @@ import numpy as np
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scipy.interpolate import RegularGridInterpolator
-import os
 import pyarrow.dataset as ds
 import pyarrow.compute as pc
 from src.config.paths import ERA5_DIR, RADAR_CACHE_DIR, RADAR_DIR
 import logging
 import sys
-import math
 from PIL import Image
 import argparse
 
