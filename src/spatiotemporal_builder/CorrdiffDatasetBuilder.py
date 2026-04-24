@@ -75,7 +75,6 @@ class ERA5Dataset:
         # Cria dataset (detecta year= / month= automaticamente)
         dataset = ds.dataset(self.path, format="parquet", partitioning="hive")
 
-        self.logger.info("Schema:", dataset.schema)
 
         # =========================================
         # FILTRO TEMPORAL
