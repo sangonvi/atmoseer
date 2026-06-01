@@ -768,7 +768,12 @@ class CorrDiffDatasetBuilder:
             )
 
             Y = self.radar.get_grid(t)
-
+            print(
+                "GRID MIN/MAX:",
+                Y.min(),
+                Y.max(),
+                Y.mean()
+)
             if Y is None:
                 continue
 
