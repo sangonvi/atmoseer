@@ -103,10 +103,10 @@ Requirements:
     - numpy
 
 Example:
-    python3 -m src.spatiotemporal_builder.CorrdiffDatasetBuilder \
+    python3 -m src.corrdiff.CorrdiffDatasetBuilder \
         -b 2024-01-01 \
         -e 2024-01-31 \
-        --era5_variables u,v,t,q \
+        --era5_variables u,v \
         --radar_res 2
 
 ===============================================================================
@@ -365,15 +365,42 @@ class RadarDataset:
 
     def precompute_pixel_map(self):
 
-        lat0, lon0 = self.pos_sumare
+        H = 654
+        W = 656
+
+        lon_min = self.lon_range[0]
+        lon_max = self.lon_range[1]
+
+        lat_min = self.lat_range[0]
+        lat_max = self.lat_range[1]
 
         self.px = (
-            (self.Lon - lon0) * -32.5 + lon0
-        ).astype(int)
+            (self.Lon - lon_min)
+            /
+            (lon_max - lon_min)
+            *
+            (W - 1)
+        ).astype(np.int32)
 
         self.py = (
-            (self.Lat - lat0) * 19.5 + lat0
-        ).astype(int)
+            (lat_max - self.Lat)
+            /
+            (lat_max - lat_min)
+            *
+            (H - 1)
+        ).astype(np.int32)
+
+        print(
+            "PX MIN/MAX:",
+            self.px.min(),
+            self.px.max()
+        )
+
+        print(
+            "PY MIN/MAX:",
+            self.py.min(),
+            self.py.max()
+        )
 
     def filepath(self, t):
 
@@ -437,6 +464,8 @@ class RadarDataset:
         img = np.array(
             Image.open(path).convert("RGB")
         )
+        
+        print("IMAGE SHAPE:", img.shape)
 
         reflect = self.rgb_to_reflectivity(img)
 
@@ -447,6 +476,23 @@ class RadarDataset:
 
         grid = reflect[py, px]
 
+        print(
+            "REFLECT MIN/MAX:",
+            np.nanmin(reflect),
+            np.nanmax(reflect)
+        )
+
+        print(
+            "GRID MIN/MAX:",
+            np.nanmin(grid),
+            np.nanmax(grid)
+        )
+
+        print(
+            "GRID MEAN:",
+            np.nanmean(grid)
+        )
+        
         np.save(
             cache,
             grid.astype(np.float32),
@@ -768,12 +814,13 @@ class CorrDiffDatasetBuilder:
             )
 
             Y = self.radar.get_grid(t)
+
             print(
-                "GRID MIN/MAX:",
-                Y.min(),
-                Y.max(),
-                Y.mean()
-)
+                "Y MIN/MAX:",
+                np.nanmin(Y),
+                np.nanmax(Y)
+            )
+            
             if Y is None:
                 continue
 
@@ -826,7 +873,8 @@ class CorrDiffDatasetBuilder:
                         yp,
                         nan=0.0,
                     )
-
+                    yp = np.log1p(yp)
+                    
                     yp = yp[None, ...]
                     mask = mask[None, ...]
 
