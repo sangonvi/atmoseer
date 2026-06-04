@@ -104,7 +104,7 @@ Requirements:
 
 Example:
     python3 -m src.corrdiff.CorrdiffDatasetBuilder \
-        -b 2024-01-01 \
+        -b 2023-10-01 \
         -e 2024-01-31 \
         --era5_variables u,v \
         --radar_res 2

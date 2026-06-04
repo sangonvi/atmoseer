@@ -21,8 +21,18 @@ print("Computing input statistics...")
 input_mean = np.mean(x, axis=(0, 2, 3))
 input_std = np.std(x, axis=(0, 2, 3))
 
-target_mean = np.mean(y, axis=(0, 2, 3))
-target_std = np.std(y, axis=(0, 2, 3))
+#target = np.log1p(y[:])
+target = y[:]
+
+target_mean = np.mean(
+    target,
+    axis=(0,2,3)
+)
+
+target_std = np.std(
+    target,
+    axis=(0,2,3)
+)
 
 # avoid division by zero
 input_std[input_std == 0] = 1.0
